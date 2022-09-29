@@ -6,6 +6,7 @@ Changelog
 
 - Incorporate support for PostgreSQL 13 and connection strings in environment.
 
+- Fix deprecation warning.
 
 
 2.4.6

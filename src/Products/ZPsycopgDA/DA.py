@@ -22,10 +22,10 @@ import time
 import Acquisition
 import psycopg2
 import Shared.DC.ZRDB.Connection
+from App.special_dtml import HTMLFile
 from DateTime import DateTime
 from db import DB
 from ExtensionClass import Base
-from Globals import HTMLFile
 from psycopg2 import DATETIME, NUMBER, ROWID, STRING
 from psycopg2.extensions import BOOLEAN, DATE, FLOAT, INTEGER, TIME, new_type
 
