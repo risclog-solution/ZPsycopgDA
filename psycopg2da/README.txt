@@ -11,7 +11,7 @@ Installing PsycopgDA
    PYTHONPATH.  INSTANCE_HOME/lib/python or Zope3/src is usually the
    most convenient place:
 
- 
+
    svn co svn://svn.zope.org/repos/main/psycopg2da/trunk psycopg2da
 
 

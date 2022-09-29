@@ -24,25 +24,30 @@
 
 # Use unittest2 if available. Otherwise mock a skip facility with warnings.
 
-import os
 import sys
+
 try:
     from functools import wraps
 except ImportError:
+
     def wraps(orig):
         def wraps_(f):
             f.__name__ = orig.__name__
             return f
+
         return wraps_
+
 
 try:
     import unittest2
+
     unittest = unittest2
 except ImportError:
     import unittest
+
     unittest2 = None
 
-if hasattr(unittest, 'skipIf'):
+if hasattr(unittest, "skipIf"):
     skip = unittest.skip
     skipIf = unittest.skipIf
 
@@ -58,7 +63,9 @@ else:
                     return
                 else:
                     return f(self)
+
             return skipIf__
+
         return skipIf_
 
     def skip(msg):
@@ -72,8 +79,10 @@ else:
 
 # Silence warnings caused by the stubborness of the Python unittest maintainers
 # http://bugs.python.org/issue9424
-if not hasattr(unittest.TestCase, 'assert_') \
-or unittest.TestCase.assert_ is not unittest.TestCase.assertTrue:
+if (
+    not hasattr(unittest.TestCase, "assert_")
+    or unittest.TestCase.assert_ is not unittest.TestCase.assertTrue
+):
     # mavaff...
     unittest.TestCase.assert_ = unittest.TestCase.assertTrue
     unittest.TestCase.failUnless = unittest.TestCase.assertTrue
@@ -84,77 +93,98 @@ or unittest.TestCase.assert_ is not unittest.TestCase.assertTrue:
 def decorate_all_tests(cls, decorator):
     """Apply *decorator* to all the tests defined in the TestCase *cls*."""
     for n in dir(cls):
-        if n.startswith('test'):
+        if n.startswith("test"):
             setattr(cls, n, decorator(getattr(cls, n)))
 
 
 def skip_before_postgres(*ver):
     """Skip a test on PostgreSQL before a certain version."""
     ver = ver + (0,) * (3 - len(ver))
+
     def skip_before_postgres_(f):
         @wraps(f)
         def skip_before_postgres__(self):
             if self.conn.server_version < int("%d%02d%02d" % ver):
-                return self.skipTest("skipped because PostgreSQL %s"
-                    % self.conn.server_version)
+                return self.skipTest(
+                    "skipped because PostgreSQL %s" % self.conn.server_version
+                )
             else:
                 return f(self)
 
         return skip_before_postgres__
+
     return skip_before_postgres_
+
 
 def skip_after_postgres(*ver):
     """Skip a test on PostgreSQL after (including) a certain version."""
     ver = ver + (0,) * (3 - len(ver))
+
     def skip_after_postgres_(f):
         @wraps(f)
         def skip_after_postgres__(self):
             if self.conn.server_version >= int("%d%02d%02d" % ver):
-                return self.skipTest("skipped because PostgreSQL %s"
-                    % self.conn.server_version)
+                return self.skipTest(
+                    "skipped because PostgreSQL %s" % self.conn.server_version
+                )
             else:
                 return f(self)
 
         return skip_after_postgres__
+
     return skip_after_postgres_
+
 
 def skip_before_python(*ver):
     """Skip a test on Python before a certain version."""
+
     def skip_before_python_(f):
         @wraps(f)
         def skip_before_python__(self):
-            if sys.version_info[:len(ver)] < ver:
-                return self.skipTest("skipped because Python %s"
-                    % ".".join(map(str, sys.version_info[:len(ver)])))
+            if sys.version_info[: len(ver)] < ver:
+                return self.skipTest(
+                    "skipped because Python %s"
+                    % ".".join(map(str, sys.version_info[: len(ver)]))
+                )
             else:
                 return f(self)
 
         return skip_before_python__
+
     return skip_before_python_
+
 
 def skip_from_python(*ver):
     """Skip a test on Python after (including) a certain version."""
+
     def skip_from_python_(f):
         @wraps(f)
         def skip_from_python__(self):
-            if sys.version_info[:len(ver)] >= ver:
-                return self.skipTest("skipped because Python %s"
-                    % ".".join(map(str, sys.version_info[:len(ver)])))
+            if sys.version_info[: len(ver)] >= ver:
+                return self.skipTest(
+                    "skipped because Python %s"
+                    % ".".join(map(str, sys.version_info[: len(ver)]))
+                )
             else:
                 return f(self)
 
         return skip_from_python__
+
     return skip_from_python_
+
 
 def skip_if_no_superuser(f):
     """Skip a test if the database user running the test is not a superuser"""
+
     @wraps(f)
     def skip_if_no_superuser_(self):
         from psycopg2 import ProgrammingError
+
         try:
             return f(self)
-        except ProgrammingError, e:
+        except ProgrammingError as e:
             import psycopg2.errorcodes
+
             if e.pgcode == psycopg2.errorcodes.INSUFFICIENT_PRIVILEGE:
                 self.skipTest("skipped because not superuser")
             else:

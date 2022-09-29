@@ -5,13 +5,14 @@
 # done for first connection. When there are multiple threads running in
 # parallel, connections where used which had not been initialized correctly.
 
-from Products.ZPsycopgDA.DA import ZDATETIME
-from Products.ZPsycopgDA.db import DB
 import threading
 
 import testconfig
-
 from testutils import unittest
+
+from Products.ZPsycopgDA.DA import ZDATETIME
+from Products.ZPsycopgDA.db import DB
+
 
 class DaThreadingTests(unittest.TestCase):
     def test_threading(self):
@@ -27,19 +28,19 @@ class DaThreadingTests(unittest.TestCase):
 
         def assert_casts(conn, name):
             connection = conn.getcursor().connection
-            if (connection.string_types !=
-                    {1114: ZDATETIME, 1184: ZDATETIME}):
+            if connection.string_types != {1114: ZDATETIME, 1184: ZDATETIME}:
                 failures.append(
-                    '%s fail (%s)' % (name, connection.string_types))
+                    "%s fail (%s)" % (name, connection.string_types)
+                )
 
         def test_connect(name):
             assert_casts(conn1, name)
 
         conn1 = DA_connect()
         try:
-            t1 = threading.Thread(target=test_connect, args=('t1',))
+            t1 = threading.Thread(target=test_connect, args=("t1",))
             t1.start()
-            t2 = threading.Thread(target=test_connect, args=('t2',))
+            t2 = threading.Thread(target=test_connect, args=("t2",))
             t2.start()
             t1.join()
             t2.join()
@@ -48,8 +49,10 @@ class DaThreadingTests(unittest.TestCase):
         finally:
             conn1.close()
 
+
 def test_suite():
     return unittest.TestLoader().loadTestsFromName(__name__)
+
 
 if __name__ == "__main__":
     unittest.main()

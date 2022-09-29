@@ -1,0 +1,58 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.2.0
+    hooks:
+
+    - id: check-ast
+    # Some basic sanitization.
+    #
+    - id: trailing-whitespace
+    - id: end-of-file-fixer
+    - id: mixed-line-ending
+      args: [--fix=lf]
+
+    # Checking data formats.
+    #
+    - id: check-yaml
+    - id: check-json
+    - id: check-toml
+    - id: check-xml
+
+    # Check for secrets.
+    #
+    # - id: check-private-key
+    # - id: detect-aws-credentials
+
+    # Try to catch some faux-pas.
+    #
+    # - id: no-commit-to-branch
+    #   args: [--branch, master]
+    - id: check-added-large-files
+      args: [--maxkb=1000]
+    - id: check-merge-conflict
+    - id: check-symlinks
+
+    # Try to catch some more obscure things.
+    #
+    - id: check-byte-order-marker
+    - id: check-case-conflict
+
+    # This checks that all links to our VCS are permalinks. How oddly specific!
+    - id: check-vcs-permalinks
+
+  - repo: https://github.com/psf/black
+    rev: 18.9b0
+    hooks:
+    - id: black
+      language_version: python3.7
+  - repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+    - id: isort
+  - repo: https://github.com/pycqa/flake8
+    rev: '4.0.1'
+    hooks:
+    - id: flake8

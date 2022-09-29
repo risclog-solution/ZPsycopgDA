@@ -2,10 +2,11 @@
 #
 # issue #142 <http://psycopg.lighthouseapp.com/projects/62710/tickets/142>
 
-from Products.ZPsycopgDA.db import DB
-
 import testconfig
 from testutils import unittest
+
+from Products.ZPsycopgDA.db import DB
+
 
 class TransactionResetTests(unittest.TestCase):
     def test_issue_142(self):
@@ -28,6 +29,7 @@ class TransactionResetTests(unittest.TestCase):
 
 def test_suite():
     return unittest.TestLoader().loadTestsFromName(__name__)
+
 
 if __name__ == "__main__":
     unittest.main()
