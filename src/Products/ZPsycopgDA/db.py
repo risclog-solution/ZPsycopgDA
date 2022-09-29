@@ -38,7 +38,7 @@ class DB(TM, dbi_db.DB):
 
     _p_oid = _p_changed = _registered = None
 
-    def __init__(self, dsn, tilevel, typecasts, enc="utf-8"):
+    def __init__(self, dsn, tilevel, typecasts, enc='utf-8'):
         self.dsn = dsn
         self.tilevel = tilevel
         self.typecasts = typecasts
@@ -58,7 +58,7 @@ class DB(TM, dbi_db.DB):
         if not _pool._initialized[id(conn)]:
             # use set_session where available as in these versions
             # set_isolation_level generates an extra query.
-            if psycopg2.__version__ >= "2.4.2":
+            if psycopg2.__version__ >= '2.4.2':
                 try:
                     conn.set_session(isolation_level=int(self.tilevel))
                 except psycopg2.InterfaceError:
@@ -123,14 +123,14 @@ class DB(TM, dbi_db.DB):
         """Generate the mappings used later by self.convert_description()."""
         self.type_mappings = {}
         for t, s in [
-            (INTEGER, "i"),
-            (LONGINTEGER, "i"),
-            (NUMBER, "n"),
-            (BOOLEAN, "n"),
-            (ROWID, "i"),
-            (DATETIME, "d"),
-            (DATE, "d"),
-            (TIME, "d"),
+            (INTEGER, 'i'),
+            (LONGINTEGER, 'i'),
+            (NUMBER, 'n'),
+            (BOOLEAN, 'n'),
+            (ROWID, 'i'),
+            (DATETIME, 'd'),
+            (DATE, 'd'),
+            (TIME, 'd'),
         ]:
             for v in t.values:
                 self.type_mappings[v] = (t, s)
@@ -139,22 +139,22 @@ class DB(TM, dbi_db.DB):
         """Convert DBAPI-2.0 description field to Zope format."""
         items = []
         for name, typ, width, ds, p, scale, null_ok in desc:
-            m = self.type_mappings.get(typ, (STRING, "s"))
+            m = self.type_mappings.get(typ, (STRING, 's'))
             items.append(
                 {
-                    "name": name,
-                    "type": use_psycopg_types and m[0] or m[1],
-                    "width": width,
-                    "precision": p,
-                    "scale": scale,
-                    "null": null_ok,
+                    'name': name,
+                    'type': use_psycopg_types and m[0] or m[1],
+                    'width': width,
+                    'precision': p,
+                    'scale': scale,
+                    'null': null_ok,
                 }
             )
         return items
 
     # tables and rows ##
 
-    def tables(self, rdb=0, _care=("TABLE", "VIEW")):
+    def tables(self, rdb=0, _care=('TABLE', 'VIEW')):
         self._register()
         c = self.getcursor()
         c.execute(
@@ -162,7 +162,7 @@ class DB(TM, dbi_db.DB):
             "  FROM pg_tables t WHERE tableowner <> 'postgres' "
             "UNION SELECT v.viewname AS NAME, 'VIEW' AS TYPE "
             "  FROM pg_views v WHERE viewowner <> 'postgres' "
-            "UNION SELECT t.tablename AS NAME, 'SYSTEM_TABLE' AS TYPE "
+            "UNION SELECT t.tablename AS NAME, 'SYSTEM_TABLE\' AS TYPE "
             "  FROM pg_tables t WHERE tableowner = 'postgres' "
             "UNION SELECT v.viewname AS NAME, 'SYSTEM_TABLE' AS TYPE "
             "FROM pg_views v WHERE viewowner = 'postgres'"
@@ -170,7 +170,7 @@ class DB(TM, dbi_db.DB):
         res = []
         for name, typ in c.fetchall():
             if typ in _care:
-                res.append({"TABLE_NAME": name, "TABLE_TYPE": typ})
+                res.append({'TABLE_NAME': name, 'TABLE_TYPE': typ})
         self.putconn()
         return res
 
@@ -197,7 +197,7 @@ class DB(TM, dbi_db.DB):
         c = self.getcursor()
 
         try:
-            for qs in [x for x in query_string.split("\0") if x]:
+            for qs in [x for x in query_string.split('\0') if x]:
                 try:
                     if query_data:
                         c.execute(qs, query_data)
@@ -224,7 +224,7 @@ class DB(TM, dbi_db.DB):
                         # logging.debug("Something went wrong when we tried to
                         # close the pool", exc_info=True)
                         pass
-                    errmsg = str(e).replace("\n", " ")
+                    errmsg = str(e).replace('\n', ' ')
                     raise ConflictError(
                         e.__class__.__name__ + " from psycopg2: " + errmsg
                     )
@@ -232,7 +232,7 @@ class DB(TM, dbi_db.DB):
                     nselects += 1
                     if c.description != desc and nselects > 1:
                         raise psycopg2.ProgrammingError(
-                            "multiple selects in single query not allowed"
+                            'multiple selects in single query not allowed'
                         )
                     if max_rows:
                         res = c.fetchmany(max_rows)
