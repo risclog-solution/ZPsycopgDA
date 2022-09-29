@@ -1,7 +1,7 @@
 from setuptools import setup
 
 # Get the version number from the package
-f = open('ZPsycopgDA/__init__.py')
+f = open('src/Products/ZPsycopgDA/__init__.py')
 try:
     for line in f:
         if line.startswith('__version__'):
@@ -43,9 +43,10 @@ setup(
     author_email='fog@initd.org',
     url='http://initd.org/psycopg/',
     license='GPL with exceptions or ZPL',
-    packages=['ZPsycopgDA'],
-    package_dir={'': '.'},
-    package_data={'ZPsycopgDA': ['dtml/*', 'icons/*']},
+    namespace_packages=['Products'],
+    packages=find_packages('src'),
+    package_dir={'': 'src'},
+    include_package_data=True,
     zip_safe=False,
     install_requires=[
         'setuptools',
