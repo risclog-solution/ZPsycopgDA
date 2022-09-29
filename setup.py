@@ -23,7 +23,7 @@ long_description = (
 )
 
 setup(
-    name="ZPsycopgDA",
+    name="Products.ZPsycopgDA",
     version=version,
     description="Zope bindings for psycopg2.",
     long_description=long_description,
