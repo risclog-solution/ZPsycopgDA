@@ -1,3 +1,11 @@
-include CONTRIBUTORS.txt CHANGES.txt README.rst LICENSE
-recursive-include ZPsycopgDA/dtml *
-recursive-include ZPsycopgDA/icons *
+include *.txt
+include *.yaml
+include .isort.cfg
+include Makefile
+recursive-include psycopg2da *.cfg
+recursive-include psycopg2da *.py
+recursive-include psycopg2da *.txt
+recursive-include psycopg2da *.zcml
+recursive-include src *.dtml
+recursive-include src *.gif
+recursive-include test *.py
