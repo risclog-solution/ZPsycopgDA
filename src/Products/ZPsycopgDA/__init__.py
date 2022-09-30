@@ -16,7 +16,7 @@
 # their work without bothering about the module dependencies.
 
 __doc__ = "ZPsycopg Database Adapter Registration."
-__version__ = "2.5-rl"
+__version__ = "2.5.1-rl.dev0"
 
 import DA
 
