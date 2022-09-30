@@ -1,4 +1,4 @@
 build/
 dist/
-ZPsycopgDA.egg-info/
+*.egg-info/
 .DS_Store
