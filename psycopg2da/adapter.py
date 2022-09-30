@@ -25,32 +25,32 @@
 
 """PostgreSQL Database Adapter for Zope 3"""
 
-from zope.interface import implements
-from zope.rdb import ZopeDatabaseAdapter, parseDSN, ZopeConnection, ZopeCursor
-from zope.rdb.interfaces import DatabaseException, IZopeConnection
-from zope.publisher.interfaces import Retry
-
-from datetime import date, time, datetime, timedelta
+import re
+import sys
+from datetime import date, datetime, time, timedelta
 
 import psycopg2
 import psycopg2.extensions
-import re
-import sys
+from zope.interface import implements
+from zope.publisher.interfaces import Retry
+from zope.rdb import ZopeConnection, ZopeCursor, ZopeDatabaseAdapter, parseDSN
+from zope.rdb.interfaces import DatabaseException, IZopeConnection
 
 # OIDs from psycopg/pgtypes.h
-DATE_OID        = 1082
-TIME_OID        = 1083
-TIMETZ_OID      = 1266
-TIMESTAMP_OID   = 1114
+DATE_OID = 1082
+TIME_OID = 1083
+TIMETZ_OID = 1266
+TIMESTAMP_OID = 1114
 TIMESTAMPTZ_OID = 1184
-INTERVAL_OID    = 1186
-CHAR_OID        = 18
-TEXT_OID        = 25
-BPCHAR_OID      = 1042
-VARCHAR_OID     = 1043
+INTERVAL_OID = 1186
+CHAR_OID = 18
+TEXT_OID = 25
+BPCHAR_OID = 1042
+VARCHAR_OID = 1043
 
 # date/time parsing functions
 _dateFmt = re.compile(r"^(\d\d\d\d)-?([01]\d)-?([0-3]\d)$")
+
 
 def parse_date(s):
     """Parses ISO-8601 compliant dates and returns a tuple (year, month,
@@ -62,13 +62,15 @@ def parse_date(s):
     """
     m = _dateFmt.match(s)
     if m is None:
-        raise ValueError, 'invalid date string: %s' % s
+        raise ValueError('invalid date string: %s' % s)
     year, month, day = m.groups()
     return int(year), int(month), int(day)
 
 
 _timeFmt = re.compile(
-    r"^([0-2]\d)(?::?([0-5]\d)(?::?([0-5]\d)(?:[.,](\d+))?)?)?$")
+    r"^([0-2]\d)(?::?([0-5]\d)(?::?([0-5]\d)(?:[.,](\d+))?)?)?$"
+)
+
 
 def parse_time(s):
     """Parses ISO-8601 compliant times and returns a tuple (hour, minute,
@@ -83,7 +85,7 @@ def parse_time(s):
     """
     m = _timeFmt.match(s)
     if m is None:
-        raise ValueError, 'invalid time string: %s' % s
+        raise ValueError('invalid time string: %s' % s)
     hr, mn, sc, msc = m.groups(0)
     if msc != 0:
         sc = float("%s.%s" % (sc, msc))
@@ -93,6 +95,7 @@ def parse_time(s):
 
 
 _tzFmt = re.compile(r"^([+-])([0-2]\d)(?::?([0-5]\d))?$")
+
 
 def parse_tz(s):
     """Parses ISO-8601 timezones and returns the offset east of UTC in
@@ -108,14 +111,15 @@ def parse_tz(s):
         return 0
     m = _tzFmt.match(s)
     if m is None:
-        raise ValueError, 'invalid time zone: %s' % s
+        raise ValueError('invalid time zone: %s' % s)
     d, hoff, moff = m.groups(0)
     if d == "-":
-        return - int(hoff) * 60 - int(moff)
+        return -int(hoff) * 60 - int(moff)
     return int(hoff) * 60 + int(moff)
 
 
 _tzPos = re.compile(r"[Z+-]")
+
 
 def parse_timetz(s):
     """Parses ISO-8601 compliant times that may include timezone information
@@ -137,6 +141,7 @@ def parse_timetz(s):
 
 _datetimeFmt = re.compile(r"[T ]")
 
+
 def _split_datetime(s):
     """Split date and time parts of ISO-8601 compliant timestamp and
     return a tuple (date, time).
@@ -145,9 +150,9 @@ def _split_datetime(s):
     """
     m = _datetimeFmt.search(s)
     if m is None:
-        raise ValueError, 'time part of datetime missing: %s' % s
+        raise ValueError('time part of datetime missing: %s' % s)
     pos = m.start()
-    return s[:pos], s[pos + 1:]
+    return s[:pos], s[pos + 1 :]
 
 
 def parse_datetime(s):
@@ -206,7 +211,7 @@ def parse_interval(s):
     # the original matches there too in case this is dependant on
     # OS or PostgreSQL release.
     for i in range(0, len(elements) - 1, 2):
-        count, unit = elements[i:i+2]
+        count, unit = elements[i : i + 2]
         if unit == 'day' and count == '1':
             days += 1
         elif unit == 'days':
@@ -224,7 +229,7 @@ def parse_interval(s):
         elif unit == 'years':
             years += int(count)
         else:
-            raise ValueError, 'unknown time interval %s %s' % (count, unit)
+            raise ValueError('unknown time interval %s %s' % (count, unit))
     if len(elements) % 2 == 1:
         hours, minutes, seconds = parse_time(elements[-1])
     return (years, months, days, hours, minutes, seconds)
@@ -235,6 +240,7 @@ def _conv_date(s, cursor):
     if s:
         return date(*parse_date(s))
 
+
 def _conv_time(s, cursor):
     if s:
         hr, mn, sc = parse_time(s)
@@ -242,14 +248,18 @@ def _conv_time(s, cursor):
         micro = round(micro * 1000000)
         return time(hr, mn, int(sc), int(micro))
 
+
 def _conv_timetz(s, cursor):
     if s:
         from zope.datetime import tzinfo
+
         hr, mn, sc, tz = parse_timetz(s)
         sc, micro = divmod(sc, 1.0)
         micro = round(micro * 1000000)
-        if tz: tz = tzinfo(tz)
+        if tz:
+            tz = tzinfo(tz)
         return time(hr, mn, int(sc), int(micro), tz)
+
 
 def _conv_timestamp(s, cursor):
     if s:
@@ -258,14 +268,18 @@ def _conv_timestamp(s, cursor):
         micro = round(micro * 1000000)
         return datetime(y, m, d, hr, mn, int(sc), int(micro))
 
+
 def _conv_timestamptz(s, cursor):
     if s:
         from zope.datetime import tzinfo
+
         y, m, d, hr, mn, sc, tz = parse_datetimetz(s)
         sc, micro = divmod(sc, 1.0)
         micro = round(micro * 1000000)
-        if tz: tz = tzinfo(tz)
+        if tz:
+            tz = tzinfo(tz)
         return datetime(y, m, d, hr, mn, int(sc), int(micro), tz)
+
 
 def _conv_interval(s, cursor):
     if s:
@@ -277,20 +291,30 @@ def _conv_interval(s, cursor):
         else:
             return timedelta(days=d, hours=hr, minutes=mn, seconds=sc)
 
+
 def _get_string_conv(encoding):
     def _conv_string(s, cursor):
         if s is not None:
             s = s.decode(encoding)
         return s
+
     return _conv_string
+
 
 # User-defined types
 DATE = psycopg2.extensions.new_type((DATE_OID,), "ZDATE", _conv_date)
 TIME = psycopg2.extensions.new_type((TIME_OID,), "ZTIME", _conv_time)
 TIMETZ = psycopg2.extensions.new_type((TIMETZ_OID,), "ZTIMETZ", _conv_timetz)
-TIMESTAMP = psycopg2.extensions.new_type((TIMESTAMP_OID,), "ZTIMESTAMP", _conv_timestamp)
-TIMESTAMPTZ = psycopg2.extensions.new_type((TIMESTAMPTZ_OID,), "ZTIMESTAMPTZ", _conv_timestamptz)
-INTERVAL = psycopg2.extensions.new_type((INTERVAL_OID,), "ZINTERVAL", _conv_interval)
+TIMESTAMP = psycopg2.extensions.new_type(
+    (TIMESTAMP_OID,), "ZTIMESTAMP", _conv_timestamp
+)
+TIMESTAMPTZ = psycopg2.extensions.new_type(
+    (TIMESTAMPTZ_OID,), "ZTIMESTAMPTZ", _conv_timestamptz
+)
+INTERVAL = psycopg2.extensions.new_type(
+    (INTERVAL_OID,), "ZINTERVAL", _conv_interval
+)
+
 
 def registerTypes(encoding):
     """Register type conversions for psycopg"""
@@ -300,16 +324,23 @@ def registerTypes(encoding):
     psycopg2.extensions.register_type(TIMESTAMP)
     psycopg2.extensions.register_type(TIMESTAMPTZ)
     psycopg2.extensions.register_type(INTERVAL)
-    STRING = psycopg2.extensions.new_type((CHAR_OID, TEXT_OID, BPCHAR_OID, VARCHAR_OID), "ZSTRING", _get_string_conv(encoding))
+    STRING = psycopg2.extensions.new_type(
+        (CHAR_OID, TEXT_OID, BPCHAR_OID, VARCHAR_OID),
+        "ZSTRING",
+        _get_string_conv(encoding),
+    )
     psycopg2.extensions.register_type(STRING)
     psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 
-dsn2option_mapping = {'host': 'host',
-                      'port': 'port',
-                      'dbname': 'dbname',
-                      'username': 'user',
-                      'password': 'password'}
+dsn2option_mapping = {
+    'host': 'host',
+    'port': 'port',
+    'dbname': 'dbname',
+    'username': 'user',
+    'password': 'password',
+}
+
 
 class Psycopg2Adapter(ZopeDatabaseAdapter):
     """A psycopg2 adapter for Zope3.
@@ -330,10 +361,10 @@ class Psycopg2Adapter(ZopeDatabaseAdapter):
         if not self.isConnected():
             try:
                 self._v_connection = Psycopg2Connection(
-                        self._connection_factory(), self
-                        )
-            except psycopg2.Error, error:
-                raise DatabaseException, str(error)
+                    self._connection_factory(), self
+                )
+            except psycopg2.Error as error:
+                raise DatabaseException(str(error))
 
     def registerTypes(self):
         registerTypes(self.getEncoding())
@@ -348,7 +379,9 @@ class Psycopg2Adapter(ZopeDatabaseAdapter):
                 conn_list.append('%s=%s' % (optname, conn_info[dsnname]))
         conn_str = ' '.join(conn_list)
         connection = psycopg2.connect(conn_str)
-        connection.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE)
+        connection.set_isolation_level(
+            psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE
+        )
         return connection
 
     def disconnect(self):
@@ -386,23 +419,22 @@ class Psycopg2Connection(ZopeConnection):
     def commit(self):
         try:
             ZopeConnection.commit(self)
-        except psycopg2.Error, error:
+        except psycopg2.Error as error:
             _handle_psycopg_exception(error)
 
 
 class Psycopg2Cursor(ZopeCursor):
-
     def execute(self, operation, parameters=None):
         """See IZopeCursor"""
         try:
             return ZopeCursor.execute(self, operation, parameters)
-        except psycopg2.Error, error:
+        except psycopg2.Error as error:
             _handle_psycopg_exception(error)
 
-    def executemany(operation, seq_of_parameters=None):
+    def executemany(self, operation, seq_of_parameters=None):
         """See IZopeCursor"""
-        raise RuntimeError, 'Oos'
+        raise RuntimeError('Oos')
         try:
             return ZopeCursor.execute(self, operation, seq_of_parameters)
-        except psycopg2.Error, error:
+        except psycopg2.Error as error:
             _handle_psycopg_exception(error)

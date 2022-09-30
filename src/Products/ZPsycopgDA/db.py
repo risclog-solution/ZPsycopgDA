@@ -15,20 +15,24 @@
 # Import modules needed by _psycopg to allow tools like py2exe to do
 # their work without bothering about the module dependencies.
 
-from Shared.DC.ZRDB.TM import TM
+import pool
+import psycopg2
+from psycopg2 import DATETIME, NUMBER, ROWID, STRING
+from psycopg2.extensions import (
+    BOOLEAN,
+    DATE,
+    INTEGER,
+    LONGINTEGER,
+    TIME,
+    TransactionRollbackError,
+    register_type,
+)
 from Shared.DC.ZRDB import dbi_db
-
+from Shared.DC.ZRDB.TM import TM
 from ZODB.POSException import ConflictError
 
-import pool
-
-import psycopg2
-from psycopg2.extensions import INTEGER, LONGINTEGER, BOOLEAN, DATE, TIME
-from psycopg2.extensions import TransactionRollbackError, register_type
-from psycopg2 import NUMBER, STRING, ROWID, DATETIME
-
-
 # the DB object, managing all the real query work
+
 
 class DB(TM, dbi_db.DB):
 
@@ -46,20 +50,30 @@ class DB(TM, dbi_db.DB):
         self.calls = 0
         self.make_mappings()
 
-    def getconn(self, init=True):
+    def getconn(self, init=True, retry=100):
         # if init is False we are trying to get hold on an already existing
         # connection, so we avoid to (re)initialize it risking errors.
         conn = pool.getconn(self.dsn)
-        if init:
+        _pool = pool._connections_pool[self.dsn]
+        if not _pool._initialized[id(conn)]:
             # use set_session where available as in these versions
             # set_isolation_level generates an extra query.
             if psycopg2.__version__ >= '2.4.2':
-                conn.set_session(isolation_level=int(self.tilevel))
+                try:
+                    conn.set_session(isolation_level=int(self.tilevel))
+                except psycopg2.InterfaceError:
+                    # we got a closed connection from a poisoned pool.
+                    # close it and retry
+                    pool.putconn(self.dsn, conn, True)
+                    if not retry:
+                        raise ConflictError("OperationalError from psycopg2")
+                    return self.getconn(init, retry - 1)
             else:
                 conn.set_isolation_level(int(self.tilevel))
             conn.set_client_encoding(self.encoding)
             for tc in self.typecasts:
                 register_type(tc, conn)
+            _pool._initialized[id(conn)] = True
         return conn
 
     def putconn(self, close=False):
@@ -88,6 +102,8 @@ class DB(TM, dbi_db.DB):
             self.putconn()
         except AttributeError:
             pass
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            self.putconn(True)
 
     def open(self):
         # this will create a new pool for our DSN if not already existing,
@@ -106,9 +122,16 @@ class DB(TM, dbi_db.DB):
     def make_mappings(self):
         """Generate the mappings used later by self.convert_description()."""
         self.type_mappings = {}
-        for t, s in [(INTEGER, 'i'), (LONGINTEGER, 'i'), (NUMBER, 'n'),
-                     (BOOLEAN, 'n'), (ROWID, 'i'),
-                     (DATETIME, 'd'), (DATE, 'd'), (TIME, 'd')]:
+        for t, s in [
+            (INTEGER, 'i'),
+            (LONGINTEGER, 'i'),
+            (NUMBER, 'n'),
+            (BOOLEAN, 'n'),
+            (ROWID, 'i'),
+            (DATETIME, 'd'),
+            (DATE, 'd'),
+            (TIME, 'd'),
+        ]:
             for v in t.values:
                 self.type_mappings[v] = (t, s)
 
@@ -117,17 +140,19 @@ class DB(TM, dbi_db.DB):
         items = []
         for name, typ, width, ds, p, scale, null_ok in desc:
             m = self.type_mappings.get(typ, (STRING, 's'))
-            items.append({
-                'name': name,
-                'type': use_psycopg_types and m[0] or m[1],
-                'width': width,
-                'precision': p,
-                'scale': scale,
-                'null': null_ok,
-            })
+            items.append(
+                {
+                    'name': name,
+                    'type': use_psycopg_types and m[0] or m[1],
+                    'width': width,
+                    'precision': p,
+                    'scale': scale,
+                    'null': null_ok,
+                }
+            )
         return items
 
-    ## tables and rows ##
+    # tables and rows ##
 
     def tables(self, rdb=0, _care=('TABLE', 'VIEW')):
         self._register()
@@ -140,7 +165,8 @@ class DB(TM, dbi_db.DB):
             "UNION SELECT t.tablename AS NAME, 'SYSTEM_TABLE\' AS TYPE "
             "  FROM pg_tables t WHERE tableowner = 'postgres' "
             "UNION SELECT v.viewname AS NAME, 'SYSTEM_TABLE' AS TYPE "
-            "FROM pg_views v WHERE viewowner = 'postgres'")
+            "FROM pg_views v WHERE viewowner = 'postgres'"
+        )
         res = []
         for name, typ in c.fetchall():
             if typ in _care:
@@ -153,16 +179,16 @@ class DB(TM, dbi_db.DB):
         c = self.getcursor()
         try:
             c.execute('SELECT * FROM "%s" WHERE 1=0' % table_name)
-        except:
+        except:  # noqa: E722 do not use bare 'except'
             return ()
         self.putconn()
         return self.convert_description(c.description, True)
 
-    ## query execution ##
+    # query execution ##
 
     def query(self, query_string, max_rows=None, query_data=None):
         self._register()
-        self.calls = self.calls+1
+        self.calls = self.calls + 1
 
         desc = ()
         res = []
@@ -178,22 +204,36 @@ class DB(TM, dbi_db.DB):
                     else:
                         c.execute(qs)
                 except TransactionRollbackError:
-                    # Ha, here we have to look like we are the ZODB raising conflict errrors, raising ZPublisher.Publish.Retry just doesn't work
-                    #logging.debug("Serialization Error, retrying transaction", exc_info=True)
-                    raise ConflictError("TransactionRollbackError from psycopg2")
-                except psycopg2.OperationalError:
-                    #logging.exception("Operational error on connection, closing it.")
+                    # Ha, here we have to look like we are the ZODB raising
+                    # conflict errrors, raising ZPublisher.Publish.Retry just
+                    # doesn't work logging.debug("Serialization Error, retrying
+                    # transaction", exc_info=True)
+                    raise ConflictError(
+                        "TransactionRollbackError from psycopg2"
+                    )
+                except (
+                    psycopg2.OperationalError,
+                    psycopg2.InterfaceError,
+                ) as e:
+                    # logging.exception("Operational error on connection,
+                    # closing it.")
                     try:
                         # Only close our connection
                         self.putconn(True)
-                    except:
-                        #logging.debug("Something went wrong when we tried to close the pool", exc_info=True)
+                    except:  # noqa: E722 do not use bare 'except'
+                        # logging.debug("Something went wrong when we tried to
+                        # close the pool", exc_info=True)
                         pass
+                    errmsg = str(e).replace('\n', ' ')
+                    raise ConflictError(
+                        e.__class__.__name__ + " from psycopg2: " + errmsg
+                    )
                 if c.description is not None:
                     nselects += 1
                     if c.description != desc and nselects > 1:
                         raise psycopg2.ProgrammingError(
-                            'multiple selects in single query not allowed')
+                            'multiple selects in single query not allowed'
+                        )
                     if max_rows:
                         res = c.fetchmany(max_rows)
                     else:
@@ -201,7 +241,7 @@ class DB(TM, dbi_db.DB):
                     desc = c.description
             self.failures = 0
 
-        except StandardError, err:
+        except Exception as err:
             self._abort()
             raise err
 

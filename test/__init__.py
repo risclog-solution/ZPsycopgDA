@@ -23,17 +23,20 @@
 # License for more details.
 
 import sys
+
 from testconfig import dsn
 from testutils import unittest
+
 
 def test_suite():
     # If connection to test db fails, bail out early.
     import psycopg2
+
     try:
         cnn = psycopg2.connect(dsn)
-    except Exception, e:
-        print "Failed connection to test db:", e.__class__.__name__, e
-        print "Please set env vars 'PSYCOPG2_TESTDB_DSN' to valid values."
+    except Exception as e:
+        print("Failed connection to test db:", e.__class__.__name__, e)
+        print("Please set env vars 'PSYCOPG2_TESTDB_DSN' to valid values.")
         sys.exit(1)
     else:
         cnn.close()
@@ -41,11 +44,14 @@ def test_suite():
     suite = unittest.TestSuite()
 
     import test_da_threading
+
     suite.addTest(test_da_threading.test_suite())
     import test_xn_reset
+
     suite.addTest(test_xn_reset.test_suite())
 
     return suite
 
-if __name__ == '__main__':
-    unittest.main(defaultTest='test_suite')
+
+if __name__ == "__main__":
+    unittest.main(defaultTest="test_suite")

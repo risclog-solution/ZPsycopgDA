@@ -1,0 +1,5 @@
+[flake8]
+max-line-length = 79
+extend-ignore =
+    E203  # black and pep8 working against each other (https://black.readthedocs.io/en/stable/faq.html?highlight=E203#why-are-flake8-s-e203-and-w503-violated)
+    E501  # line too long, this is handled by black

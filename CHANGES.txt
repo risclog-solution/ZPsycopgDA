@@ -1,10 +1,12 @@
 Changelog
 =========
 
-2.4.7
--------------------
+2.4.6-rl
+--------
 
-- Removed ZPsycopgDA dependencies on deprecated (Python or Zope) features.
+- Incorporate support for PostgreSQL 13 and connection strings in environment.
+
+- Fix deprecation warning.
 
 
 2.4.6

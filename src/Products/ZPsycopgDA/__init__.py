@@ -16,7 +16,7 @@
 # their work without bothering about the module dependencies.
 
 __doc__ = "ZPsycopg Database Adapter Registration."
-__version__ = '2.4.7.dev1'
+__version__ = "2.4.6-rl"
 
 import DA
 
@@ -24,7 +24,10 @@ import DA
 def initialize(context):
     context.registerClass(
         DA.Connection,
-        permission='Add Z Psycopg 2 Database Connections',
-        constructors=(DA.manage_addZPsycopgConnectionForm,
-                      DA.manage_addZPsycopgConnection),
-        icon = 'icons/DBAdapterFolder_icon.gif')
+        permission="Add Z Psycopg 2 Database Connections",
+        constructors=(
+            DA.manage_addZPsycopgConnectionForm,
+            DA.manage_addZPsycopgConnection,
+        ),
+        icon="icons/DBAdapterFolder_icon.gif",
+    )

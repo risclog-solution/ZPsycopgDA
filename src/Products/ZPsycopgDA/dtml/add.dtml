@@ -11,7 +11,7 @@ A Zope Psycopg 2 Database Connection is used to connect and execute
 queries on a PostgreSQL database.
 </p>
 
-<p class="form-help"> 
+<p class="form-help">
 In the form below <em>Connection String</em> (also called the Data Source Name
 or DSN for short) is a string... (TODO: finish docs)
 </p>

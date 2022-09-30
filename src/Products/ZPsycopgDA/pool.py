@@ -19,6 +19,7 @@
 # ZPsycopgDA code in db.py.
 
 import threading
+
 import psycopg2
 from psycopg2.pool import PoolError
 
@@ -44,6 +45,7 @@ class AbstractConnectionPool(object):
         self._used = {}
         self._rused = {}  # id(conn) -> key map
         self._keys = 0
+        self._initialized = {}
 
         for i in range(self.minconn):
             self._connect()
@@ -51,6 +53,7 @@ class AbstractConnectionPool(object):
     def _connect(self, key=None):
         """Create a new connection and assign it to 'key' if not None."""
         conn = psycopg2.connect(*self._args, **self._kwargs)
+        self._initialized[id(conn)] = False
         if key is not None:
             self._used[key] = conn
             self._rused[id(conn)] = key
@@ -96,6 +99,8 @@ class AbstractConnectionPool(object):
             self._pool.append(conn)
         else:
             conn.close()
+            if id(conn) in self._initialized:
+                del self._initialized[id(conn)]
 
         # here we check for the presence of key because it can happen that a
         # thread tries to put back a connection after a call to close
@@ -115,7 +120,9 @@ class AbstractConnectionPool(object):
         for conn in self._pool + list(self._used.values()):
             try:
                 conn.close()
-            except:
+                if id(conn) in self._initialized:
+                    del self._initialized[id(conn)]
+            except:  # noqa: E722 do not use bare 'except'
                 pass
         self.closed = True
 
@@ -133,13 +140,16 @@ class PersistentConnectionPool(AbstractConnectionPool):
     def __init__(self, minconn, maxconn, *args, **kwargs):
         """Initialize the threading lock."""
         import threading
+
         AbstractConnectionPool.__init__(
-            self, minconn, maxconn, *args, **kwargs)
+            self, minconn, maxconn, *args, **kwargs
+        )
         self._lock = threading.Lock()
 
         # we we'll need the thread module, to determine thread ids, so we
         # import it here and copy it in an instance variable
         import thread
+
         self.__thread = thread
 
     def getconn(self):
@@ -179,8 +189,7 @@ def getpool(dsn, create=True):
     _connections_lock.acquire()
     try:
         if dsn not in _connections_pool and create:
-            _connections_pool[dsn] = \
-                PersistentConnectionPool(4, 200, dsn)
+            _connections_pool[dsn] = PersistentConnectionPool(4, 200, dsn)
     finally:
         _connections_lock.release()
     return _connections_pool[dsn]
