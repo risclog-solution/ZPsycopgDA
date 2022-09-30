@@ -1,8 +1,8 @@
 Changelog
 =========
 
-2.4.6-rl
---------
+2.5-rl
+------
 
 - Incorporate support for PostgreSQL 13 and connection strings in environment.
 
