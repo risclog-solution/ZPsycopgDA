@@ -1,7 +1,7 @@
 Changelog
 =========
 
-2.5.0+rl1
+2.5.1+rl1
 ---------
 
 - Fix MANIFEST.in to include all necessary files.
