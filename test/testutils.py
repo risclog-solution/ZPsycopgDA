@@ -21,10 +21,8 @@
 # FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public
 # License for more details.
 
-
-# Use unittest2 if available. Otherwise mock a skip facility with warnings.
-
 import sys
+import unittest
 
 try:
     from functools import wraps
@@ -37,45 +35,6 @@ except ImportError:
 
         return wraps_
 
-
-try:
-    import unittest2
-
-    unittest = unittest2
-except ImportError:
-    import unittest
-
-    unittest2 = None
-
-if hasattr(unittest, "skipIf"):
-    skip = unittest.skip
-    skipIf = unittest.skipIf
-
-else:
-    import warnings
-
-    def skipIf(cond, msg):
-        def skipIf_(f):
-            @wraps(f)
-            def skipIf__(self):
-                if cond:
-                    warnings.warn(msg)
-                    return
-                else:
-                    return f(self)
-
-            return skipIf__
-
-        return skipIf_
-
-    def skip(msg):
-        return skipIf(True, msg)
-
-    def skipTest(self, msg):
-        warnings.warn(msg)
-        return
-
-    unittest.TestCase.skipTest = skipTest
 
 # Silence warnings caused by the stubborness of the Python unittest maintainers
 # http://bugs.python.org/issue9424
