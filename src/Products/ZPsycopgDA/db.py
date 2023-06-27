@@ -203,13 +203,14 @@ class DB(TM, dbi_db.DB):
                         c.execute(qs, query_data)
                     else:
                         c.execute(qs)
-                except TransactionRollbackError:
+                except TransactionRollbackError as e:
                     # Ha, here we have to look like we are the ZODB raising
                     # conflict errrors, raising ZPublisher.Publish.Retry just
                     # doesn't work logging.debug("Serialization Error, retrying
                     # transaction", exc_info=True)
+                    errmsg = str(e).replace('\n', ' ')
                     raise ConflictError(
-                        "TransactionRollbackError from psycopg2"
+                        "TransactionRollbackError from psycopg2:" + errmsg
                     )
                 except (
                     psycopg2.OperationalError,

@@ -6,6 +6,8 @@ Changelog
 
 - Remove special handling for ``unittest2``.
 
+- Provide a meaningful error message on `TransactionRollbackError`.
+
 
 2.5.0+rl1
 ---------
