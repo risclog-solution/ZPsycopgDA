@@ -1,8 +1,9 @@
+=========
 Changelog
 =========
 
 2.5.0+rl2 (unreleased)
-----------------------
+======================
 
 - Remove special handling for ``unittest2``.
 
@@ -10,12 +11,13 @@ Changelog
 
 
 2.5.0+rl1
----------
+=========
 
 - Fix MANIFEST.in to include all necessary files.
 
+
 2.5.0+rl0
----------
+=========
 
 - Incorporate support for PostgreSQL 13 and connection strings in environment.
 
@@ -23,13 +25,13 @@ Changelog
 
 
 2.4.6
--------------------
+=====
 
 - Added all the supported isolation level options
 - Fixed pool bugs (psycopg issues #123, #125, #142)
 
 
 2.4.4
--------------------
+=====
 
 - Make this and egg.
