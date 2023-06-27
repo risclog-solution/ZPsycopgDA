@@ -5,7 +5,7 @@ f = open("src/Products/ZPsycopgDA/__init__.py")
 try:
     for line in f:
         if line.startswith("__version__"):
-            __version__ = line.split()[-1].replace("'", "")
+            __version__ = line.split()[-1].replace('"', '')
             break
     else:
         raise ValueError("__version__ not found")
