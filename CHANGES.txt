@@ -2,8 +2,8 @@
 Changelog
 =========
 
-2.5.0+rl2 (unreleased)
-======================
+"2.5.0+rl2" (2023-06-27)
+========================
 
 - Remove special handling for ``unittest2``.
 
